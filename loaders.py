@@ -96,36 +96,48 @@ class SatelliteImageLoader(TimeSeriesDataLoader):
 
 
 class RadiationPowerLoader(TimeSeriesDataLoader):
-    ROW_WHERE_DATA_STARTS = 5
+    ROW_WHERE_DATA_STARTS = 1
     RADIATION_MEASUREMENT_COLOUMN = 2
 
     def __init__(self, db_path, time_step):
         super().__init__(db_path, time_step)
 
-        # Cache per day workbook, no need to reload it on every timestamp
-        self._workbook_cache = {}
+        self._file_cache = {}
 
-    def __get_workbook(self, timestamp):
-        file_name = f'Global_radiation_{timestamp.strftime("%Y%m%d")}.xls'
-        if file_name in self._workbook_cache:
-            return self._workbook_cache[file_name]
-
-        full_path = os.path.join(self._db_path, file_name)
-        workbook = xlrd.open_workbook(full_path)
-
-        self._workbook_cache[file_name] = workbook
-        return workbook
+    def _get_row_index(self, timestamp):
+        month_days = sum((calendar.monthrange(timestamp.year, month)[1] for month in range(1, timestamp.month)))
+        return month_days * 24 * 60 + (timestamp.day - 1) * 24 * 60 + \
+                    (timestamp.hour * 60) + timestamp.minute - 1
 
     def _fetch_data(self, timestamp):
-      try:
-        workbook = self.__get_workbook(timestamp)
-        sheet = workbook.sheet_by_index(0)
-        row_index = timestamp.hour * 60 + timestamp.minute
+        # workbook = self.__get_workbook(timestamp)
+        # sheet = workbook.sheet_by_index(0)
+        file_name = f'Global_Radiation_{timestamp.strftime("%Y")}.csv'
+        full_path = os.path.join(self._db_path, file_name)
 
-        cell = sheet.cell(self.ROW_WHERE_DATA_STARTS + row_index, self.RADIATION_MEASUREMENT_COLOUMN)
-        return torch.tensor([[cell.value]])
-      except:
-        return None
+        # Could replcae this blob with an LRU cache or somethin
+        if file_name in self._file_cache:
+            file_data = self._file_cache[file_name]
+        else:
+            with open(full_path, "r") as csvfile:
+                file_data = csvfile.read().split("\n")
+            self._file_cache[file_name] = file_data
+        
+        file_rows = file_data
+        row_index = self._get_row_index(timestamp)
+
+        # print(row_index + 1)
+        # print(file_rows[row_index + 1])
+
+        radiation_value = file_rows[self.ROW_WHERE_DATA_STARTS + row_index] \
+                                .split(",")[self.RADIATION_MEASUREMENT_COLOUMN]
+            
+        radiation_value = int(radiation_value) if (radiation_value not in ["NoData", "InVld"]) else 0
+
+        return torch.tensor(radiation_value, dtype=torch.float)
+
+        # cell = sheet.cell(self.ROW_WHERE_DATA_STARTS + row_index, self.RADIATION_MEASUREMENT_COLOUMN)
+        # return torch.tensor(cell.value, dtype=torch.float)
 
 
 class CloudMaskLoader(TimeSeriesDataLoader):
