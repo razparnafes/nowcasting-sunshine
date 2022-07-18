@@ -30,7 +30,7 @@ class TimeSeriesDataLoader(object):
         :param time_step: Sample time of time series in seconds 
         """
         self._db_path = db_path
-        self._time_step = timedelta(seconds=time_step)
+        self._time_step = datetime.timedelta(seconds=time_step)
     
     def _fetch_data(self, timestamp):
         """
