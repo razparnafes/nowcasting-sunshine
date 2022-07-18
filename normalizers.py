@@ -1,3 +1,5 @@
+import torch
+
 class RadiationNormalizer(object):
     def __init__(self, radiation_data_loader, start_time, end_time):
         self._radiation_data_loader = radiation_data_loader
