@@ -14,10 +14,10 @@ import functools
 
 
 class CloudMaskRadiationLoader(Dataset):
-	"""
-	Input is cloudmask, label is radiation.
-	Since we take as input a series of cloudmask images, we need to specify a window size and window step.
-	"""
+    """
+    Input is cloudmask, label is radiation.
+    Since we take as input a series of cloudmask images, we need to specify a window size and window step.
+    """
     CLOUD_MASK_SAMPLE_TIME = 60 * 15
     RADIATION_SAMPLE_TIME = 60 * 1
 
