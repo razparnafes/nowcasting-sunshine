@@ -19,11 +19,11 @@ import time
 ## Base Generic Loader Object
 
 class TimeSeriesDataLoader(object):
-  """
-  All of our data conforms with taking a start timestamp and end timestamp and returning everything in between. 
-  So this piece of generic code sits in here. Each dataloader needs to implement the `_fetch_data` function, 
-  which takes a timestamp as input and returns data specific to its loader.
-  """
+    """
+    All of our data conforms with taking a start timestamp and end timestamp and returning everything in between. 
+    So this piece of generic code sits in here. Each dataloader needs to implement the `_fetch_data` function, 
+    which takes a timestamp as input and returns data specific to its loader.
+    """
     def __init__(self, db_path, time_step):
         """
         :param db_path: Path to root dir of the DB
