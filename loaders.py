@@ -141,13 +141,17 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
         # return torch.tensor(cell.value, dtype=torch.float)
 
 
-class CloudMaskLoader(TimeSeriesDataLoader):
+class NetCDFLoader(TimeSeriesDataLoader):
     # Israel coordinates
     X1 = 34.
     Y1 = 29.5
 
     X2 = 36.
     Y2 = 33.5
+    
+    def __init__(self, db_path, time_step, data_type):
+      super(NetCDFLoader, self).__init__(db_path, time_step)
+      self.data_type = data_type
 
     @staticmethod
     def lc2yxgdal(lines=None, columns=None, GT=None):
@@ -167,7 +171,7 @@ class CloudMaskLoader(TimeSeriesDataLoader):
         mask_lon = np.logical_and(x1<=lon,lon<=x2)
         mask_lat = np.logical_and(y1<=lat,lat<=y2)
         
-        mask = np.logical_and(mask_lon==1,mask_lat==1)  
+        mask = np.logical_and(mask_lon==1,mask_lat==1)	
 
         idx_y,idx_x = np.where(mask==True)
 
@@ -246,20 +250,23 @@ class CloudMaskLoader(TimeSeriesDataLoader):
         return lons, lats
 
     def _fetch_data(self, timestamp):
-        file_name = f'S_NWC_CMA_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
+        file_name = f'S_NWC_{self.data_type.upper()}_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
         full_path = os.path.join(self._db_path, file_name)
 
-        nc_cma = netCDF4.Dataset(full_path)
-        CMA = nc_cma.variables['cma']
+        nc = netCDF4.Dataset(full_path)
+        nc_variables = nc.variables[self.data_type]
 
         # For any questions about this, ask Ori
-        sat_lon, sat_lat = self.obtain_pixel_center(nc_cma)
-        CMA_cut,sat_lon_cut,sat_lat_cut = self.crop_area_irregular_grid(CMA,sat_lon,sat_lat, self.X1, self.X2, self.Y1, self.Y2)
+        sat_lon, sat_lat = self.obtain_pixel_center(nc)
+        try:
+          nc_cut,sat_lon_cut,sat_lat_cut = self.crop_area_irregular_grid(nc_variables,sat_lon,sat_lat, self.X1, self.X2, self.Y1, self.Y2)
+        except(ValueError):
+          return None
 
-        CMA_cut = np.round(CMA_cut,1)
-        CMA_vector = CMA_cut.flatten()
+        nc_cut = np.round(nc_cut,1)
+        nc_vector = nc_cut.flatten()
 
-        return torch.tensor(CMA_vector)
+        return torch.tensor(nc_vector, dtype=torch.float)
 
 
 class TensorDataLoader(TimeSeriesDataLoader):
