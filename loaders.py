@@ -137,8 +137,7 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
 
         return torch.tensor(radiation_value, dtype=torch.float)
 
-        # cell = sheet.cell(self.ROW_WHERE_DATA_STARTS + row_index, self.RADIATION_MEASUREMENT_COLOUMN)
-        # return torch.tensor(cell.value, dtype=torch.float)
+
 
 
 class NetCDFLoader(TimeSeriesDataLoader):
