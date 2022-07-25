@@ -20,11 +20,6 @@ import time
 ## Base Generic Loader Object
 
 class TimeSeriesDataLoader(object):
-    """
-    All of our data conforms with taking a start timestamp and end timestamp and returning everything in between. 
-    So this piece of generic code sits in here. Each dataloader needs to implement the `_fetch_data` function, 
-    which takes a timestamp as input and returns data specific to its loader.
-    """
     def __init__(self, db_path, time_step):
         """
         :param db_path: Path to root dir of the DB
@@ -41,22 +36,23 @@ class TimeSeriesDataLoader(object):
         raise NotImplementedError
     
     def __getitem__(self, timestamps):
-        try:
-          if type(timestamps) == tuple:
-              start_date, end_date = timestamps
+        if type(timestamps) == tuple:
+            start_date, end_date = timestamps
 
-              # Number of timesteps in our time series
-              timestep_count = (end_date - start_date).seconds / self._time_step.seconds
-              timestep_count = int(np.floor(timestep_count))
+            # Number of timesteps in our time series
+            timestep_count = (end_date - start_date).total_seconds() / self._time_step.seconds
+            timestep_count = int(np.floor(timestep_count))
 
-              time_series = [self._fetch_data(t) for t in (start_date + self._time_step * n for n in range(timestep_count))]
+            time_series = [self._fetch_data(t) for t in (start_date + self._time_step * n for n in range(timestep_count))]
 
-              return torch.stack(time_series)
-          else:
-              # For cases where we'd like to sample a single value from our time series
-              return self._fetch_data(timestamps)
-        except:
-              return None
+            # If there's a missing sample, just give up on the window
+            if None in time_series:
+                return None
+
+            return torch.stack(time_series)
+        else:
+            # For cases where we'd like to sample a single value from our time series
+            return self._fetch_data(timestamps)
 
     def preload_and_store(self, start_date, end_date, output_dir, window_size=1):
         """
@@ -79,7 +75,6 @@ class TimeSeriesDataLoader(object):
               tensor = self._fetch_data(timestamp)
               file_name = f'{timestamp.strftime("%Y%m%d%H%M")}.pt'
               full_path = os.path.join(output_dir, file_name)
-              print("hehe")
               torch.save(tensor.clone(), full_path)
             except:
               pass
