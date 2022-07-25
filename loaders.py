@@ -41,22 +41,23 @@ class TimeSeriesDataLoader(object):
         raise NotImplementedError
     
     def __getitem__(self, timestamps):
-        try:
-          if type(timestamps) == tuple:
-              start_date, end_date = timestamps
+        if type(timestamps) == tuple:
+            start_date, end_date = timestamps
 
-              # Number of timesteps in our time series
-              timestep_count = (end_date - start_date).seconds / self._time_step.seconds
-              timestep_count = int(np.floor(timestep_count))
+            # Number of timesteps in our time series
+            timestep_count = (end_date - start_date).total_seconds() / self._time_step.seconds
+            timestep_count = int(np.floor(timestep_count))
 
-              time_series = [self._fetch_data(t) for t in (start_date + self._time_step * n for n in range(timestep_count))]
+            time_series = [self._fetch_data(t) for t in (start_date + self._time_step * n for n in range(timestep_count))]
 
-              return torch.stack(time_series)
-          else:
-              # For cases where we'd like to sample a single value from our time series
-              return self._fetch_data(timestamps)
-        except:
-              return None
+            # If there's a missing sample, just give up on the window
+            if None in time_series:
+                return None
+
+            return torch.stack(time_series)
+        else:
+            # For cases where we'd like to sample a single value from our time series
+            return self._fetch_data(timestamps)
 
     def preload_and_store(self, start_date, end_date, output_dir, window_size=1):
         """
