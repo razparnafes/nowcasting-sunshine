@@ -76,7 +76,7 @@ class TimeSeriesDataLoader(object):
               file_name = f'{timestamp.strftime("%Y%m%d%H%M")}.pt'
               full_path = os.path.join(output_dir, file_name)
               torch.save(tensor.clone(), full_path)
-            except:
+            except Exception as e:
               pass
 
 
@@ -131,8 +131,6 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
         radiation_value = int(radiation_value) if (radiation_value not in ["NoData", "InVld"]) else 0
 
         return torch.tensor(radiation_value, dtype=torch.float)
-
-
 
 
 class NetCDFLoader(TimeSeriesDataLoader):
@@ -264,12 +262,12 @@ class NetCDFLoader(TimeSeriesDataLoader):
 
 
 class TensorDataLoader(TimeSeriesDataLoader):
+    @functools.lru_cache(maxsize=300)
     def _fetch_data(self, timestamp):
-      try:
         file_name = f'{timestamp.strftime("%Y%m%d%H%M")}.pt'
         full_path = os.path.join(self._db_path, file_name)
 
-        ret = torch.load(full_path)
-        return ret
-      except:
-        return None
+        try:
+            return torch.load(full_path).float()
+        except FileNotFoundError:
+            return None
