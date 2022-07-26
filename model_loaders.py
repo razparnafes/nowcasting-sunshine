@@ -4,7 +4,7 @@ import time
 
 import torch
 from torch.utils.data import Dataset
-import utils
+from nowcasting_sunshine import utils
 
 import functools
 
