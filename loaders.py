@@ -76,7 +76,7 @@ class TimeSeriesDataLoader(object):
               pass
 
 
-class SatelliteImageLoader(loaders.TimeSeriesDataLoader):
+class SatelliteImageLoader(TimeSeriesDataLoader):
     def __init__(self, db_path, time_step, crop=True):
         super().__init__(db_path, time_step)
         self._crop = crop
