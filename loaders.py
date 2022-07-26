@@ -99,10 +99,11 @@ class SatelliteImageLoader(TimeSeriesDataLoader):
           pil_image = pil_image.crop((left, top, right, bottom))
 
         # Convert to grayscale
-        pil_image = transforms.Grayscale()(pil_image)
         tensor_transform = transforms.ToTensor()
+        tensor_image = tensor_transform(pil_image)
+        tensor_image = transforms.Grayscale()(tensor_image)
 
-        return tensor_transform(pil_image)
+        return tensor_image
 
 class RadiationPowerLoader(TimeSeriesDataLoader):
     ROW_WHERE_DATA_STARTS = 1
