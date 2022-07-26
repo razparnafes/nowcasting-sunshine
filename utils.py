@@ -1,10 +1,12 @@
 import math
+import torch
+
 def cossza(timestamp, location):
-	"""
-	how to use:
-	location = {"lat": 31.2716, "lon": 34.38941} # Ashalim
-	radiation / cossza(timestamp, location)
-	"""
+  """
+  	how to use:
+  	location = {"lat": 31.2716, "lon": 34.38941} # Ashalim
+  	radiation / cossza(timestamp, location)
+  	"""
   PI= 3.14159265358979323846264338327950288
   time_zone=2  # Israel time zone UTC+2
 
@@ -21,3 +23,20 @@ def cossza(timestamp, location):
   SZA = math.acos(((math.sin(location["lat"]*PI/180.0)*math.sin(decl_angle))+(math.cos(location["lat"]*PI/180.0)*math.cos(decl_angle)*math.cos(solar_hr_angle*PI/180.0)))) * 180.0 / PI  # in degrees
   COS_SZA = math.cos(math.radians(SZA))
   return COS_SZA
+
+
+def crop_israel_to_ashalim(israel_tensor):
+  """
+    get israel cloudtype or cloudmask tensor
+    return tensor of ashalim cloudtype or cloudmask in the same time
+    """
+  start = 6111
+  line = 92
+  one_line = 13
+  ct_size = 143
+  subtensors = []
+  for i in range(int(ct_size / one_line)):
+    index = start + (line * i)
+    subtensors.append(israel_tensor[index:index + one_line])
+  ashalim_handmande_tensor = torch.cat(subtensors)
+  return  ashalim_handmande_tensor
