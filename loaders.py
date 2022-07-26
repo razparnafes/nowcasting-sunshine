@@ -77,9 +77,10 @@ class TimeSeriesDataLoader(object):
 
 
 class SatelliteImageLoader(TimeSeriesDataLoader):
-    def __init__(self, db_path, time_step, crop=True):
+    def __init__(self, db_path, time_step, crop=True, to_greyscale=False):
         super().__init__(db_path, time_step)
         self._crop = crop
+        self._to_greyscale = to_greyscale
 
 
     def _fetch_data(self, timestamp):
@@ -101,7 +102,8 @@ class SatelliteImageLoader(TimeSeriesDataLoader):
         # Convert to grayscale
         tensor_transform = transforms.ToTensor()
         tensor_image = tensor_transform(pil_image)
-        tensor_image = transforms.Grayscale()(tensor_image)
+        if self._to_greyscale:
+            tensor_image = transforms.Grayscale()(tensor_image)
 
         return tensor_image
 
