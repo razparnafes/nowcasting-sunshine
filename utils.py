@@ -51,7 +51,12 @@ def numerical_tesor_to_indicator(tensor, size):
 
 
 def greyscale_transformer(gs):
+    """
+    converts loaded tenzor to greyscale, and crops around ashalim
+    """
     gs = torch.cat([gs[0,:,:,:], gs[1,:,:,:], gs[2,:,:,:]], dim=0)
     gs = transforms.Grayscale()(gs)
     gs = gs.reshape(1, 1, 275, 170)
+    #img[157, 93]
+    gs = gs[0,0,152:163,88:99]
     return gs
