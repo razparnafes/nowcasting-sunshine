@@ -195,7 +195,7 @@ class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
 
         cms_window, grayscale_window, timestamps, radiation = self._windows[idx]
 
-        print(radiation)
+        #print(radiation)
 
         # Pass data through preprocessors
         if self._cms_transform:
