@@ -5,15 +5,10 @@ import numpy as np
 import datetime
 from torchvision import transforms
 from PIL import Image
-import xlrd
 import os
-import sys
 import numpy.ma as ma
 import pyproj
 import netCDF4
-import pandas as pd
-import matplotlib.pyplot as plt
-import time
 import functools
 
 from nowcasting_sunshine.consts import ISRAEL_COORDINATES
