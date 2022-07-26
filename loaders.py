@@ -14,17 +14,13 @@ import netCDF4
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
+import functools
 
 from consts import ISRAEL_COORDINATES
 
 ## Base Generic Loader Object
 
 class TimeSeriesDataLoader(object):
-    """
-    All of our data conforms with taking a start timestamp and end timestamp and returning everything in between. 
-    So this piece of generic code sits in here. Each dataloader needs to implement the `_fetch_data` function, 
-    which takes a timestamp as input and returns data specific to its loader.
-    """
     def __init__(self, db_path, time_step):
         """
         :param db_path: Path to root dir of the DB
@@ -80,7 +76,6 @@ class TimeSeriesDataLoader(object):
               tensor = self._fetch_data(timestamp)
               file_name = f'{timestamp.strftime("%Y%m%d%H%M")}.pt'
               full_path = os.path.join(output_dir, file_name)
-              print("hehe")
               torch.save(tensor.clone(), full_path)
             except:
               pass
@@ -90,12 +85,17 @@ class SatelliteImageLoader(TimeSeriesDataLoader):
     def _fetch_data(self, timestamp):
         file_name = f'{timestamp.strftime("%Y%m%d%H%M")}.png'
         full_path = os.path.join(self._db_path, file_name)
+        
+        try:
+            pil_image = Image.open(full_path)
+        except FileNotFoundError:
+            return None
 
-        pil_image = Image.open(full_path)
+        # Convert to grayscale
+        pil_image = transforms.Grayscale()(pil_image)
         tensor_transform = transforms.ToTensor()
 
         return tensor_transform(pil_image)
-
 
 class RadiationPowerLoader(TimeSeriesDataLoader):
     ROW_WHERE_DATA_STARTS = 1
@@ -109,7 +109,7 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
     def _get_row_index(self, timestamp):
         month_days = sum((calendar.monthrange(timestamp.year, month)[1] for month in range(1, timestamp.month)))
         return month_days * 24 * 60 + (timestamp.day - 1) * 24 * 60 + \
-                    (timestamp.hour * 60) + timestamp.minute - 1
+                    (timestamp.hour * 60) + timestamp.minute
 
     def _fetch_data(self, timestamp):
         # workbook = self.__get_workbook(timestamp)
@@ -128,8 +128,9 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
         file_rows = file_data
         row_index = self._get_row_index(timestamp)
 
-        # print(row_index + 1)
-        # print(file_rows[row_index + 1])
+        #print(row_index)
+        #print(row_index + 1)
+        #print(file_rows[row_index + 1])
 
         radiation_value = file_rows[self.ROW_WHERE_DATA_STARTS + row_index] \
                                 .split(",")[self.RADIATION_MEASUREMENT_COLOUMN]
@@ -138,8 +139,7 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
 
         return torch.tensor(radiation_value, dtype=torch.float)
 
-        # cell = sheet.cell(self.ROW_WHERE_DATA_STARTS + row_index, self.RADIATION_MEASUREMENT_COLOUMN)
-        # return torch.tensor(cell.value, dtype=torch.float)
+
 
 
 class NetCDFLoader(TimeSeriesDataLoader):
@@ -244,11 +244,11 @@ class NetCDFLoader(TimeSeriesDataLoader):
         return lons, lats
 
     def _fetch_data(self, timestamp):
-        file_name = f'S_NWC_{self.data_type.upper()}_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
+        file_name = f'S_NWC_CMA_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
         full_path = os.path.join(self._db_path, file_name)
 
-        nc = netCDF4.Dataset(full_path)
-        nc_variables = nc.variables[self.data_type]
+        nc_cma = netCDF4.Dataset(full_path)
+        CMA = nc_cma.variables['cma']
 
         # For any questions about this, ask Ori
         sat_lon, sat_lat = self.obtain_pixel_center(nc)
@@ -259,19 +259,23 @@ class NetCDFLoader(TimeSeriesDataLoader):
         except(ValueError):
           return None
 
-        nc_cut = np.round(nc_cut,1)
-        nc_vector = nc_cut.flatten()
+        CMA_cut = np.round(CMA_cut,1)
+        CMA_vector = CMA_cut.flatten()
 
-        return torch.tensor(nc_vector, dtype=torch.float)
+        return torch.tensor(CMA_vector, dtype=torch.float)
+    
+def meme():
+    print("memes")
+
 
 
 class TensorDataLoader(TimeSeriesDataLoader):
+    @functools.lru_cache(maxsize=300)
     def _fetch_data(self, timestamp):
-      try:
         file_name = f'{timestamp.strftime("%Y%m%d%H%M")}.pt'
         full_path = os.path.join(self._db_path, file_name)
 
-        ret = torch.load(full_path)
-        return ret
-      except:
-        return None
+        try:
+            return torch.load(full_path).float()
+        except FileNotFoundError:
+            return None

@@ -29,6 +29,8 @@ class CloudMaskRadiationLoader(Dataset):
         :param cms_transform: Cloud Mask transform function
         :param radiation_transform: Radiation transform function
         """
+        super().__init__()
+
         # Initialize dataloaders
         self._cms_data_loader = cms_data_loader
         self._radiation_data_loader = radiation_data_loader
