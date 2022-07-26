@@ -40,3 +40,11 @@ def crop_israel_to_ashalim(israel_tensor):
     subtensors.append(israel_tensor[index:index + one_line])
   ashalim_tensor = torch.cat(subtensors)
   return  ashalim_tensor
+
+def numerical_tesor_to_indicator(tensor, size):
+  tensors = []
+  for i in range(tensor.size()[0]):
+    basic_array = [0] * size
+    basic_array[int(tensor[i]) - 1] = 1
+    tensors.append(torch.tensor(basic_array))
+  return torch.stack(tensors)
