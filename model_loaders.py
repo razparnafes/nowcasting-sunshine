@@ -94,7 +94,6 @@ class CloudMaskRadiationLoader(Dataset):
 
         return cms_window, radiation
 
-
 class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
     CLOUD_MASK_SAMPLE_TIME = 60 * 15
     GRAYSCALE_SAMPLE_TIME = 60 * 5
@@ -163,21 +162,30 @@ class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
         # The radiation we try to predict is the one at the end of the CMS window
         # Also, the radiation data is in UTC+2, while the CMS is in UTC, so gotta make up
         # for that..
-        radiation = self._radiation_data_loader[window_end + self._prediction_step]
+        radiation_prediction = self._radiation_data_loader[window_end + self._prediction_step]
 
-        return cms_window, grayscale_window, timestamps, radiation
+        # Radiation at end of window
+        radiation = self._radiation_data_loader[window_end]
+
+        # Calculated prediction on clear day for prediction time
+        location = {"lat": 31.2716, "lon": 34.38941} # Ashalim
+        cos_alpha_window_end = utils.cossza(window_end, location)
+        cos_alpha_prediction = utils.cossza(window_end + self._prediction_step, location)
+        dummy_radiation = (cos_alpha_prediction / cos_alpha_window_end) * radiation
+
+        return cms_window, grayscale_window, timestamps, radiation, dummy_radiation, radiation_prediction
     
     def _load_all_windows(self):
         original_window_count = self._window_count
         for idx in tqdm.trange(len(self)):
-            cms_window, grayscale_window, timestamps, radiation = self._load_window(idx)
+            cms_window, grayscale_window, timestamps, radiation, dummy_radiation, radiation_prediction = self._load_window(idx)
 
             # Skip this sample if we couldn't load the window
             # Some of the data is missing so this'll happen from time to time
             if cms_window is None or grayscale_window is None:
                 self._window_count = self._window_count - 1
                 continue
-            self._windows.append((cms_window, grayscale_window, timestamps, radiation))
+            self._windows.append((cms_window, grayscale_window, timestamps, radiation, dummy_radiation, radiation_prediction))
         print(f"[*] Pruned {original_window_count - self._window_count} windows")
 
     @functools.lru_cache(maxsize=300)
@@ -186,9 +194,7 @@ class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
         # Just load everything to RAM instead
         # cms_window, radiation = self._load_window(idx)
 
-        cms_window, grayscale_window, timestamps, radiation = self._windows[idx]
-
-        #print(radiation)
+        cms_window, grayscale_window, timestamps, radiation, dummy_radiation, radiation_prediction = self._windows[idx]
 
         # Pass data through preprocessors
         if self._cms_transform:
@@ -199,5 +205,14 @@ class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
             timestamps = self._timestamp_transform(timestamps)
         if self._radiation_transform:
             radiation = self._radiation_transform(radiation)
+            radiation_prediction = self._radiation_transform(radiation_prediction)
+            dummy_radiation = self._radiation_transform(dummy_radiation)
 
-        return [cms_window, grayscale_window, timestamps], radiation
+        return {
+            "cms_window": cms_window,
+            "grayscale_window": grayscale_window,
+            "timestamps": timestamps,
+            "radiation_prediction": radiation_prediction,
+            "dummy_radiation": dummy_radiation,
+            "radiation": radiation
+        }
