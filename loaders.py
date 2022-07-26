@@ -15,7 +15,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import time
 
-
+from consts import ISRAEL_COORDINATES
 
 ## Base Generic Loader Object
 
@@ -143,13 +143,6 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
 
 
 class NetCDFLoader(TimeSeriesDataLoader):
-    # Israel coordinates
-    X1 = 34.
-    Y1 = 29.5
-
-    X2 = 36.
-    Y2 = 33.5
-    
     def __init__(self, db_path, time_step, data_type):
       super(NetCDFLoader, self).__init__(db_path, time_step)
       self.data_type = data_type
@@ -260,7 +253,9 @@ class NetCDFLoader(TimeSeriesDataLoader):
         # For any questions about this, ask Ori
         sat_lon, sat_lat = self.obtain_pixel_center(nc)
         try:
-          nc_cut,sat_lon_cut,sat_lat_cut = self.crop_area_irregular_grid(nc_variables,sat_lon,sat_lat, self.X1, self.X2, self.Y1, self.Y2)
+          nc_cut,sat_lon_cut,sat_lat_cut = self.crop_area_irregular_grid(nc_variables,sat_lon,sat_lat,
+                                                                         ISRAEL_COORDINATES['X1'], ISRAEL_COORDINATES['X2'],
+                                                                         ISRAEL_COORDINATES['Y1'], ISRAEL_COORDINATES['Y2'])
         except(ValueError):
           return None
 
