@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import time
 import functools
 
-from consts import ISRAEL_COORDINATES
+from nowcasting_sunshine.consts import ISRAEL_COORDINATES
 
 ## Base Generic Loader Object
 
@@ -259,10 +259,10 @@ class NetCDFLoader(TimeSeriesDataLoader):
         except(ValueError):
           return None
 
-        CMA_cut = np.round(nc_cut,1)
-        CMA_vector = nc_cut.flatten()
+        nc_cut = np.round(nc_cut,1)
+        nc_vector = nc_cut.flatten()
 
-        return torch.tensor(CMA_vector, dtype=torch.float)
+        return torch.tensor(nc_vector, dtype=torch.float)
     
 def meme():
     print("memes")
