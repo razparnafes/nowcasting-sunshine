@@ -5,18 +5,13 @@ import numpy as np
 import datetime
 from torchvision import transforms
 from PIL import Image
-import xlrd
 import os
-import sys
 import numpy.ma as ma
 import pyproj
 import netCDF4
-import pandas as pd
-import matplotlib.pyplot as plt
-import time
 import functools
 
-from consts import ISRAEL_COORDINATES
+from nowcasting_sunshine.consts import ISRAEL_COORDINATES
 
 ## Base Generic Loader Object
 
@@ -244,11 +239,11 @@ class NetCDFLoader(TimeSeriesDataLoader):
         return lons, lats
 
     def _fetch_data(self, timestamp):
-        file_name = f'S_NWC_CMA_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
+        file_name = f'S_NWC_{self.data_type.upper()}_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
         full_path = os.path.join(self._db_path, file_name)
 
-        nc_cma = netCDF4.Dataset(full_path)
-        CMA = nc_cma.variables['cma']
+        nc = netCDF4.Dataset(full_path)
+        nc_variables = nc.variables[self.data_type]
 
         # For any questions about this, ask Ori
         sat_lon, sat_lat = self.obtain_pixel_center(nc)
@@ -259,10 +254,10 @@ class NetCDFLoader(TimeSeriesDataLoader):
         except(ValueError):
           return None
 
-        CMA_cut = np.round(CMA_cut,1)
-        CMA_vector = CMA_cut.flatten()
+        nc_cut = np.round(nc_cut,1)
+        nc_vector = nc_cut.flatten()
 
-        return torch.tensor(CMA_vector, dtype=torch.float)
+        return torch.tensor(nc_vector, dtype=torch.float)
     
 def meme():
     print("memes")
