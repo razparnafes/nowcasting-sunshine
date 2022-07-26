@@ -76,7 +76,7 @@ class TimeSeriesDataLoader(object):
               file_name = f'{timestamp.strftime("%Y%m%d%H%M")}.pt'
               full_path = os.path.join(output_dir, file_name)
               torch.save(tensor.clone(), full_path)
-            except Exception as e:
+            except:
               pass
 
 
@@ -84,12 +84,17 @@ class SatelliteImageLoader(TimeSeriesDataLoader):
     def _fetch_data(self, timestamp):
         file_name = f'{timestamp.strftime("%Y%m%d%H%M")}.png'
         full_path = os.path.join(self._db_path, file_name)
+        
+        try:
+            pil_image = Image.open(full_path)
+        except FileNotFoundError:
+            return None
 
-        pil_image = Image.open(full_path)
+        # Convert to grayscale
+        pil_image = transforms.Grayscale()(pil_image)
         tensor_transform = transforms.ToTensor()
 
         return tensor_transform(pil_image)
-
 
 class RadiationPowerLoader(TimeSeriesDataLoader):
     ROW_WHERE_DATA_STARTS = 1
@@ -103,7 +108,7 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
     def _get_row_index(self, timestamp):
         month_days = sum((calendar.monthrange(timestamp.year, month)[1] for month in range(1, timestamp.month)))
         return month_days * 24 * 60 + (timestamp.day - 1) * 24 * 60 + \
-                    (timestamp.hour * 60) + timestamp.minute - 1
+                    (timestamp.hour * 60) + timestamp.minute
 
     def _fetch_data(self, timestamp):
         # workbook = self.__get_workbook(timestamp)
@@ -122,8 +127,9 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
         file_rows = file_data
         row_index = self._get_row_index(timestamp)
 
-        # print(row_index + 1)
-        # print(file_rows[row_index + 1])
+        #print(row_index)
+        #print(row_index + 1)
+        #print(file_rows[row_index + 1])
 
         radiation_value = file_rows[self.ROW_WHERE_DATA_STARTS + row_index] \
                                 .split(",")[self.RADIATION_MEASUREMENT_COLOUMN]
@@ -133,7 +139,8 @@ class RadiationPowerLoader(TimeSeriesDataLoader):
         return torch.tensor(radiation_value, dtype=torch.float)
 
 
-class NetCDFLoader(TimeSeriesDataLoader):
+
+class CloudMaskLoader(TimeSeriesDataLoader):
     # Israel coordinates
     X1 = 34.
     Y1 = 29.5
@@ -141,10 +148,6 @@ class NetCDFLoader(TimeSeriesDataLoader):
     X2 = 36.
     Y2 = 33.5
     
-    def __init__(self, db_path, time_step, data_type):
-      super(NetCDFLoader, self).__init__(db_path, time_step)
-      self.data_type = data_type
-
     @staticmethod
     def lc2yxgdal(lines=None, columns=None, GT=None):
         '''
@@ -242,23 +245,21 @@ class NetCDFLoader(TimeSeriesDataLoader):
         return lons, lats
 
     def _fetch_data(self, timestamp):
-        file_name = f'S_NWC_{self.data_type.upper()}_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
+        file_name = f'S_NWC_CMA_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
         full_path = os.path.join(self._db_path, file_name)
 
-        nc = netCDF4.Dataset(full_path)
-        nc_variables = nc.variables[self.data_type]
+        nc_cma = netCDF4.Dataset(full_path)
+        CMA = nc_cma.variables['cma']
 
         # For any questions about this, ask Ori
-        sat_lon, sat_lat = self.obtain_pixel_center(nc)
-        try:
-          nc_cut,sat_lon_cut,sat_lat_cut = self.crop_area_irregular_grid(nc_variables,sat_lon,sat_lat, self.X1, self.X2, self.Y1, self.Y2)
-        except(ValueError):
-          return None
+        sat_lon, sat_lat = self.obtain_pixel_center(nc_cma)
+        CMA_cut,sat_lon_cut,sat_lat_cut = self.crop_area_irregular_grid(CMA,sat_lon,sat_lat, self.X1, self.X2, self.Y1, self.Y2)
 
-        nc_cut = np.round(nc_cut,1)
-        nc_vector = nc_cut.flatten()
+        CMA_cut = np.round(CMA_cut,1)
+        CMA_vector = CMA_cut.flatten()
 
-        return torch.tensor(nc_vector, dtype=torch.float)
+        return torch.tensor(CMA_vector, dtype=torch.float)
+
 
 
 class TensorDataLoader(TimeSeriesDataLoader):
