@@ -259,6 +259,9 @@ class CloudMaskLoader(TimeSeriesDataLoader):
         CMA_vector = CMA_cut.flatten()
 
         return torch.tensor(CMA_vector, dtype=torch.float)
+    
+def meme():
+    print("memes")
 
 
 
