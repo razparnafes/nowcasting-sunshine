@@ -21,4 +21,4 @@ def cossza(timestamp, location):
     solar_hr_angle = (true_solar_time/4) - 180
     SZA = math.acos(((math.sin(location["lat"]*PI/180.0)*math.sin(decl_angle))+(math.cos(location["lat"]*PI/180.0)*math.cos(decl_angle)*math.cos(solar_hr_angle*PI/180.0)))) * 180.0 / PI  # in degrees
     COS_SZA = math.cos(math.radians(SZA))
-    return COS_SZA
+    return abs(COS_SZA)
