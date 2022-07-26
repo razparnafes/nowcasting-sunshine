@@ -94,6 +94,19 @@ class CloudMaskRadiationLoader(Dataset):
 
         return cms_window, radiation
 
+import os
+import datetime
+import time
+
+import numpy as np
+
+import torch
+from torch.utils.data import Dataset
+
+import functools
+
+import tqdm
+
 
 class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
     CLOUD_MASK_SAMPLE_TIME = 60 * 15
@@ -188,8 +201,6 @@ class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
 
         cms_window, grayscale_window, timestamps, radiation = self._windows[idx]
 
-        print(radiation)
-
         # Pass data through preprocessors
         if self._cms_transform:
             cms_window = self._cms_transform(cms_window)
@@ -200,4 +211,10 @@ class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
         if self._radiation_transform:
             radiation = self._radiation_transform(radiation)
 
-        return [cms_window, grayscale_window, timestamps], radiation
+        return {
+            "cms_window": cms_window,
+            "grayscale_window": grayscale_window,
+            "timestamps": timestamps,
+            "radiation": radiation
+        }
+        # return [cms_window, grayscale_window, timestamps], radiation
