@@ -76,7 +76,12 @@ class TimeSeriesDataLoader(object):
               pass
 
 
-class SatelliteImageLoader(TimeSeriesDataLoader):
+class SatelliteImageLoader(loaders.TimeSeriesDataLoader):
+    def __init__(self, db_path, time_step, crop=True):
+        super().__init__(db_path, time_step)
+        self._crop = crop
+
+
     def _fetch_data(self, timestamp):
         file_name = f'{timestamp.strftime("%Y%m%d%H%M")}.png'
         full_path = os.path.join(self._db_path, file_name)
@@ -85,6 +90,13 @@ class SatelliteImageLoader(TimeSeriesDataLoader):
             pil_image = Image.open(full_path)
         except FileNotFoundError:
             return None
+
+        if self._crop:
+          left = 350
+          top = 275
+          right = 520
+          bottom = 550
+          pil_image = pil_image.crop((left, top, right, bottom))
 
         # Convert to grayscale
         pil_image = transforms.Grayscale()(pil_image)
