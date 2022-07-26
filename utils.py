@@ -48,3 +48,10 @@ def numerical_tesor_to_indicator(tensor, size):
     basic_array[int(tensor[i]) - 1] = 1
     tensors.append(torch.tensor(basic_array))
   return torch.stack(tensors)
+
+
+def greyscale_transformer(gs):
+    gs = torch.cat([gs[0,:,:,:], gs[1,:,:,:], gs[2,:,:,:]], dim=0)
+    gs = transforms.Grayscale()(gs)
+    gs = gs.reshape(1, 1, 275, 170)
+    return gs
