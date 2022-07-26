@@ -244,11 +244,11 @@ class NetCDFLoader(TimeSeriesDataLoader):
         return lons, lats
 
     def _fetch_data(self, timestamp):
-        file_name = f'S_NWC_CMA_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
+        file_name = f'S_NWC_{self.data_type.upper()}_MSG4_MSG-N-VISIR_{timestamp.strftime("%Y%m%d")}T{timestamp.strftime("%H%M%S")}Z.nc'
         full_path = os.path.join(self._db_path, file_name)
 
-        nc_cma = netCDF4.Dataset(full_path)
-        CMA = nc_cma.variables['cma']
+        nc = netCDF4.Dataset(full_path)
+        nc_variables = nc.variables[self.data_type]
 
         # For any questions about this, ask Ori
         sat_lon, sat_lat = self.obtain_pixel_center(nc)
@@ -259,8 +259,8 @@ class NetCDFLoader(TimeSeriesDataLoader):
         except(ValueError):
           return None
 
-        CMA_cut = np.round(CMA_cut,1)
-        CMA_vector = CMA_cut.flatten()
+        CMA_cut = np.round(nc_cut,1)
+        CMA_vector = nc_cut.flatten()
 
         return torch.tensor(CMA_vector, dtype=torch.float)
     
