@@ -1,22 +1,15 @@
-
-# We have all kinds of models we'd like to try, and each one treats the data quite differently 
-# (what's considered a label and what's considered an input). 
-# So we're gonna build the different data loaders over here (that use the dataloaders defined above ofc).
-
-
 import os
 import datetime
 import time
-
-import numpy as np
 
 import torch
 from torch.utils.data import Dataset
 
 import functools
 
-import tqdm
+import numpy as np
 
+import tqdm
 
 
 class CloudMaskRadiationLoader(Dataset):
@@ -61,15 +54,14 @@ class CloudMaskRadiationLoader(Dataset):
     
     def _load_window(self, idx):
         # TODO: Implement window step
-        cms_window_start = self._start_time + datetime.timedelta(seconds=self.CLOUD_MASK_SAMPLE_TIME * idx)
+        # Add 2 hours because UTC
+        cms_window_start = self._start_time + datetime.timedelta(seconds=self.CLOUD_MASK_SAMPLE_TIME * idx) + datetime.timedelta(hours=2)
         cms_window_end = cms_window_start + datetime.timedelta(seconds=self.CLOUD_MASK_SAMPLE_TIME * self._cms_window_size)
 
         cms_window = self._cms_data_loader[cms_window_start, cms_window_end]
 
         # The radiation we try to predict is the one at the end of the CMS window
-        # Also, the radiation data is in UTC+2, while the CMS is in UTC, so gotta make up
-        # for that..
-        radiation = self._radiation_data_loader[cms_window_end + datetime.timedelta(hours=2)]
+        radiation = self._radiation_data_loader[cms_window_end]
 
         return cms_window, radiation
     
@@ -152,7 +144,8 @@ class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
     
     def _load_window(self, idx):
         # TODO: Implement window step
-        window_start = self._start_time + datetime.timedelta(seconds=self.CLOUD_MASK_SAMPLE_TIME * idx)
+        # Add 2 hours cuz UTC+2
+        window_start = self._start_time + datetime.timedelta(seconds=self.CLOUD_MASK_SAMPLE_TIME * idx) + datetime.timedelta(hours=2)
         window_end = window_start + datetime.timedelta(seconds=self.CLOUD_MASK_SAMPLE_TIME * self._window_size)
 
         cms_window = self._cms_data_loader[window_start, window_end]
@@ -170,7 +163,7 @@ class CloudMaskGrayScaleTimeStampRadiationLoader(Dataset):
         # The radiation we try to predict is the one at the end of the CMS window
         # Also, the radiation data is in UTC+2, while the CMS is in UTC, so gotta make up
         # for that..
-        radiation = self._radiation_data_loader[window_end + datetime.timedelta(hours=2) + self._prediction_step]
+        radiation = self._radiation_data_loader[window_end + self._prediction_step]
 
         return cms_window, grayscale_window, timestamps, radiation
     
